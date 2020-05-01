@@ -3,6 +3,7 @@
 PROGRAM ?= ../xtendpid
 
 OBJS += ../xtendpid.o
+OBJS += ../pixtend.o
 
 CFLAGS += -I..
 
