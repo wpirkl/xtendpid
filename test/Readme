@@ -1,14 +1,14 @@
-Enable SPI:
+# Enable SPI:
 echo 24 > /sys/class/gpio/export
 echo out > /sys/class/gpio/gpio24/direction
 echo 1 > /sys/class/gpio/gpio24/value
 
-Reset uC:
+# Reset uC:
 echo 23 > /sys/class/gpio/export
 echo out > /sys/class/gpio/gpio23/direction
 echo 1 > /sys/class/gpio/gpio23/value
 echo 0 > /sys/class/gpio/gpio23/value
 
-Cleanup:
-echo 24 > /sys/class/gpio/unexport
-echo 23 > /sys/class/gpio/unexport
+# Cleanup:
+# echo 24 > /sys/class/gpio/unexport
+# echo 23 > /sys/class/gpio/unexport

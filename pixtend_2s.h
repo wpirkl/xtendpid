@@ -47,10 +47,14 @@ struct pixtOutV2S {
     uint8_t byPWM1Ctrl1;
 
     uint8_t reserved3;
+
     uint8_t byPWM1A;
 
     uint8_t reserved4;
+
     uint8_t byPWM1B;
+
+    uint8_t reserved5;
 
     uint8_t abyRetainDataOut[32];
 
@@ -101,6 +105,9 @@ struct pixtInV2S {
     uint8_t wHumid3Low;
     uint8_t wHumid3High;
 
+    uint8_t reserved2;
+    uint8_t reserved3;
+
     uint8_t abyRetainDataIn[32];
 
     uint8_t crcDataLow;
@@ -109,9 +116,9 @@ struct pixtInV2S {
 } __attribute__((packed));
 
 
-void prepare_output_v2s(struct pixtOutV2S * output);
+void pixtend_v2s_prepare_output(struct pixtOutV2S * output);
 
-bool parse_input_v2s(struct pixtInV2S * input);
+bool pixtend_v2s_parse_input(struct pixtInV2S * input);
 
 
 

@@ -12,16 +12,131 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <string.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <linux/types.h>
 #include <linux/spi/spidev.h>
 
+#include "../pixtend_2s.h"
+
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+
+
+static int wr_gpio(const char * filename, const char * value) {
+
+	int fd;
+	int res;
+
+	fd = open(filename, O_WRONLY);
+	if(fd < 0)
+	{
+		return fd;
+	}
+
+	res = write(fd, value, strlen(value));
+
+	close(fd);
+
+	return res;
+}
+
+static int rd_gpio(const char * filename, char * value, const size_t len) {
+
+        int fd;
+        int res;
+
+        fd = open(filename, O_RDONLY);
+        if(fd < 0)
+        {
+                return fd;
+        }
+
+        res = read(fd, value, len);
+
+        close(fd);
+
+        return res;
+}
+
+
+
+
+int gpio_export(int pin)
+{
+	char * filename = "/sys/class/gpio/export";
+	char cmd[3];
+
+	snprintf(cmd, sizeof(cmd), "%d", pin);
+
+	return wr_gpio(filename, cmd);
+}
+
+int gpio_unexport(int pin)
+{
+        char * filename = "/sys/class/gpio/unexport";
+        char cmd[3];
+
+        snprintf(cmd, sizeof(cmd), "%d", pin);
+
+        return wr_gpio(filename, cmd);
+}
+
+int gpio_direction(int pin, bool output)
+{
+	char filename[64];
+	char * direction;
+
+	snprintf(filename, sizeof(filename), "/sys/class/gpio/gpio%d/direction", pin);
+
+	if(output) {
+		direction = "out";
+	} else {
+		direction = "in";
+	}
+
+	return wr_gpio(filename, direction);
+}
+
+int gpio_read(int pin)
+{
+        char filename[64];
+        char result[8];
+	int res;
+
+        snprintf(filename, sizeof(filename), "/sys/class/gpio/gpio%d/value", pin);
+
+	res = rd_gpio(filename, result, sizeof(result)-1);
+	if(res < 0) return res;
+
+	result[res] = '\0';
+
+	return atoi(result);
+}
+
+int gpio_write(int pin, bool on)
+{
+        char filename[64];
+        char * value;
+
+        snprintf(filename, sizeof(filename), "/sys/class/gpio/gpio%d/value", pin);
+
+        if(on) {
+                value = "1";
+        } else {
+                value = "0";
+        }
+
+        return wr_gpio(filename, value);
+}
+
+
+
 
 static void pabort(const char *s)
 {
@@ -38,19 +153,32 @@ static uint16_t delay;
 static void transfer(int fd)
 {
 	int ret;
-	uint8_t tx[] = {
-            0b10101010,
-            0b10001001,
-            0b10101010,
-            0b00000000,
-            0b00000000,
-            0b00000000,
-        };
-	uint8_t rx[ARRAY_SIZE(tx)] = {0, };
+	struct pixtOutV2S tx;
+	struct pixtInV2S rx;
+
+	printf("size of out: %d\n", sizeof(tx));
+        printf("size of in: %d\n", sizeof(rx));
+
+
+	memset(&tx, 0, sizeof(tx));
+	memset(&rx, 0, sizeof(rx));
+
+	pixtend_v2s_prepare_output(&tx);
+
+	printf("sending:\n");
+
+        for (ret = 0; ret < sizeof(rx); ret++) {
+                if (!(ret % 8))
+                        puts("");
+                printf("%.2X ", ((uint8_t*)&rx)[ret]);
+        }
+        puts("\n");
+
+
 	struct spi_ioc_transfer tr = {
-		.tx_buf = (unsigned long)tx,
-		.rx_buf = (unsigned long)rx,
-		.len = ARRAY_SIZE(tx),
+		.tx_buf = (unsigned long)&tx,
+		.rx_buf = (unsigned long)&rx,
+		.len = sizeof(rx),
 		.delay_usecs = delay,
 		.speed_hz = speed,
 		.bits_per_word = bits,
@@ -60,10 +188,14 @@ static void transfer(int fd)
 	if (ret < 1)
 		pabort("can't send spi message");
 
-	for (ret = 0; ret < ARRAY_SIZE(tx); ret++) {
-		if (!(ret % 6))
+	pixtend_v2s_parse_input(&rx);
+
+        printf("received:\n");
+
+	for (ret = 0; ret < sizeof(rx); ret++) {
+		if (!(ret % 8))
 			puts("");
-		printf("%.2X ", rx[ret]);
+		printf("%.2X ", ((uint8_t*)&rx)[ret]);
 	}
 	puts("");
 }
@@ -160,6 +292,36 @@ int main(int argc, char *argv[])
 
 	parse_opts(argc, argv);
 
+	// export gpio
+//	ret = gpio_export(24);
+	if(ret < 0)
+		pabort("can't export GPIO24");
+
+//        ret = gpio_export(23);
+        if(ret < 0)
+                pabort("can't export GPIO23");
+
+//        ret = gpio_direction(24, true);
+        if(ret < 0)
+                pabort("can't set GPIO24 to output");
+
+//        ret = gpio_direction(23, true);
+        if(ret < 0)
+                pabort("can't set GPIO23 to output");
+
+//        ret = gpio_write(24, true);
+        if(ret < 0)
+                pabort("can't set GPIO24 to high");
+
+//        ret = gpio_write(23, true);
+        if(ret < 0)
+                pabort("can't set GPIO23 to high");
+
+//        ret = gpio_write(23, false);
+        if(ret < 0)
+                pabort("can't set GPIO23 to low");
+
+
 	fd = open(device, O_RDWR);
 	if (fd < 0)
 		pabort("can't open device");
@@ -204,6 +366,15 @@ int main(int argc, char *argv[])
 	transfer(fd);
 
 	close(fd);
+
+//        ret = gpio_unexport(24);
+        if(ret < 0)
+                pabort("can't unexport GPIO24");
+
+//        ret = gpio_unexport(23);
+        if(ret < 0)
+                pabort("can't unexport GPIO23");
+
 
 	return ret;
 }

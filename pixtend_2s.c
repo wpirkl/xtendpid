@@ -3,7 +3,7 @@
 #include "pixtend_2s.h"
 
 
-void prepare_output_v2s(struct pixtOutV2S * output)
+void pixtend_v2s_prepare_output(struct pixtOutV2S * output)
 {
     int16_t crc_data;
     int16_t crc_header;
@@ -22,7 +22,7 @@ void prepare_output_v2s(struct pixtOutV2S * output)
 
 }
 
-bool parse_input_v2s(struct pixtInV2S * input)
+bool pixtend_v2s_parse_input(struct pixtInV2S * input)
 {
 
 
