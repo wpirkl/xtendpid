@@ -23,6 +23,7 @@
 #include <linux/types.h>
 #include <linux/spi/spidev.h>
 
+#include "../pixtend.h"
 #include "../pixtend_2s.h"
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
@@ -153,8 +154,8 @@ static uint16_t delay;
 static void transfer(int fd)
 {
 	int ret;
-	struct pixtOutV2S tx;
-	struct pixtInV2S rx;
+	union pixtOut tx;
+	union pixtIn rx;
 
 	printf("size of out: %d\n", sizeof(tx));
         printf("size of in: %d\n", sizeof(rx));

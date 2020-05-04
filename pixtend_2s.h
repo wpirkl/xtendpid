@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+union pixtOut;
+union pixtIn;
 
 struct pixtOutV2S {
     uint8_t byModelOut;
@@ -116,10 +118,15 @@ struct pixtInV2S {
 } __attribute__((packed));
 
 
-void pixtend_v2s_prepare_output(struct pixtOutV2S * output);
+void pixtend_v2s_prepare_output(union pixtOut * output);
 
-bool pixtend_v2s_parse_input(struct pixtInV2S * input);
+bool pixtend_v2s_parse_input(union pixtIn * input);
 
+bool pixtend_v2s_set_do(union pixtOut * output, size_t bit, bool enable);
+
+bool pixtend_v2s_set_ro(union pixtOut * output, size_t bit, bool enable);
+
+bool pixtend_v2s_get_di(union pixtIn * input, size_t bit, bool * enable);
 
 
 // eof
