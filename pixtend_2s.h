@@ -28,7 +28,6 @@ struct pixtOutV2S {
     uint8_t byRelayOut; 
 
     uint8_t byGPIOCtrl;
-
     uint8_t byGPIOOut;
 
     uint8_t byGPIODebounce01;
@@ -46,17 +45,14 @@ struct pixtOutV2S {
     uint8_t wPWM0BHigh;
 
     uint8_t byPWM1Ctrl0;
-    uint8_t byPWM1Ctrl1;
+    uint8_t byPWM1Ctrl1Low;
+    uint8_t byPWM1Ctrl1High;
 
-    uint8_t reserved3;
+    uint8_t byPWM1ALow;
+    uint8_t byPWM1AHigh;
 
-    uint8_t byPWM1A;
-
-    uint8_t reserved4;
-
-    uint8_t byPWM1B;
-
-    uint8_t reserved5;
+    uint8_t byPWM1BLow;
+    uint8_t byPWM1BHigh;
 
     uint8_t abyRetainDataOut[32];
 
