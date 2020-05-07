@@ -26,6 +26,7 @@ CFLAGS  += -O3
 CFLAGS  += -Wall
 CFLAGS  += -DPROGRAM=$(PROGRAM)
 CFLAGS  += -I. -Ilinux_daemon
+CFLAGS  += -pthread
 
 CPPFLAGS = $(CFLAGS) -lgcc
 
