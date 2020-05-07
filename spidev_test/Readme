@@ -10,5 +10,5 @@ echo 1 > /sys/class/gpio/gpio23/value
 echo 0 > /sys/class/gpio/gpio23/value
 
 # Cleanup:
-# echo 24 > /sys/class/gpio/unexport
-# echo 23 > /sys/class/gpio/unexport
+#echo 24 > /sys/class/gpio/unexport
+#echo 23 > /sys/class/gpio/unexport

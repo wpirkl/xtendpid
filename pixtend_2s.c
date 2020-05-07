@@ -14,6 +14,9 @@ void pixtend_v2s_prepare_output(union pixtOut * output)
     crc_header = crc16(0xffff, &output->v2s.byModelOut, &output->v2s.crcHeaderHigh - &output->v2s.crcHeaderLow + 1);
     crc_data = crc16(0xffff, &output->v2s.byDigitalInDebounce01, &output->v2s.crcDataHigh - &output->v2s.crcDataHigh + 1);
 
+//    printf("crc_header: %04x\n", crc_header);
+//    printf("crc_data: %04x\n", crc_data);
+
     output->v2s.crcHeaderLow = crc_header & 0xff;
     output->v2s.crcHeaderHigh = (crc_header >> 8) & 0xff;
 
@@ -30,8 +33,8 @@ bool pixtend_v2s_parse_input(union pixtIn * input)
     crc_header = crc16(0xffff, &input->v2s.byFirmware, &input->v2s.crcHeaderHigh - &input->v2s.byFirmware + 1);
     crc_data = crc16(0xffff, &input->v2s.byDigitalIn, &input->v2s.crcDataHigh - &input->v2s.byDigitalIn + 1);
 
-    printf("crc_header: %04x\n", crc_header);
-    printf("crc_data: %04x\n", crc_data);
+//    printf("crc_header: %04x\n", crc_header);
+//    printf("crc_data: %04x\n", crc_data);
 
     return !(crc_header || crc_data);
 }

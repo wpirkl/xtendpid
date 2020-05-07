@@ -176,6 +176,10 @@ static void transfer(int fd)
         puts("\n");
 
 
+        printf("delay is: %d\n", delay);
+        printf("speed is: %d\n", speed);
+        printf("bits is: %d\n", bits);
+
 	struct spi_ioc_transfer tr = {
 		.tx_buf = (unsigned long)&tx,
 		.rx_buf = (unsigned long)&rx,
