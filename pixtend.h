@@ -4,13 +4,14 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 
+#include "pixtend.h"
 #include "pixtend_2s.h"
 
-#define LIMIT_PAR(value, min, max) \
-    if(*value < min || *value > max) { *value = 0; } else {}
 
 uint16_t crc16(uint16_t crc, uint8_t * data, size_t len);
+
 
 uint16_t crc16_calc(uint16_t crc, uint8_t data);
 
@@ -19,9 +20,61 @@ union pixtOut {
     struct pixtOutV2S v2s;
 };
 
+
 union pixtIn {
     struct pixtInV2S v2s;
 };
 
-// eof
 
+struct pixtend {
+    bool (*prepare_output)(union pixtOut * output);
+    bool (*parse_input)(union pixtIn * input);
+    size_t (*get_transfer_size)(void);
+    bool (*get_model)(union pixtIn * input, char * model, char * submodel);
+};
+
+
+static inline bool pixt_prepare_output(const struct pixtend * pixt, union pixtOut * output)
+{
+    if(pixt) {
+        return pixt->prepare_output(output);
+    }
+
+    return false;
+}
+
+
+static inline bool pixt_parse_input(const struct pixtend * pixt, union pixtIn * input)
+{
+    if(pixt) {
+        return pixt->parse_input(input);
+    }
+
+    return false;
+}
+
+static inline size_t pixt_get_transfer_size(const struct pixtend * pixt)
+{
+    if(pixt) {
+        return pixt->get_transfer_size();
+    }
+
+    return false;
+}
+
+
+static inline bool pixt_init(struct pixtend * pixt, char model, char sub_model)
+{
+    switch(model)
+    {
+        case '2': {
+            pixtend_v2s_init(pixt);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+// eof

@@ -6,6 +6,8 @@
 
 union pixtOut;
 union pixtIn;
+struct pixtend;
+
 
 struct pixtOutV2S {
     uint8_t byModelOut;
@@ -114,15 +116,24 @@ struct pixtInV2S {
 } __attribute__((packed));
 
 
-void pixtend_v2s_prepare_output(union pixtOut * output);
+void pixtend_v2s_init(struct pixtend * pxt);
 
-bool pixtend_v2s_parse_input(union pixtIn * input);
+// void pixtend_v2s_prepare_output(union pixtOut * output);
 
-bool pixtend_v2s_set_do(union pixtOut * output, size_t bit, bool enable);
+// bool pixtend_v2s_parse_input(union pixtIn * input);
 
-bool pixtend_v2s_set_ro(union pixtOut * output, size_t bit, bool enable);
+// bool pixtend_v2s_set_do(union pixtOut * output, size_t bit, bool enable);
 
-bool pixtend_v2s_get_di(union pixtIn * input, size_t bit, bool * enable);
+// bool pixtend_v2s_set_ro(union pixtOut * output, size_t bit, bool enable);
+
+// bool pixtend_v2s_get_fw(union pixtIn * input, int * version);
+
+// bool pixtend_v2s_get_hw(union pixtIn * input, int * version);
+
+// bool pixtend_v2s_get_model(union pixtIn * input, char * model);
+
+// bool pixtend_v2s_get_di(union pixtIn * input, size_t bit, bool * enable);
+
 
 
 // eof

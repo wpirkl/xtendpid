@@ -3,11 +3,12 @@
 #include "pixtend.h"
 
 
-void pixtend_v2s_prepare_output(union pixtOut * output)
+static bool pixtend_v2s_prepare_output(union pixtOut * output)
 {
     int16_t crc_data;
     int16_t crc_header;
 
+    output->v2s.byModelOut = 'S';
     output->v2s.crcHeaderLow = 0;
     output->v2s.crcHeaderHigh = 0;
 
@@ -22,10 +23,12 @@ void pixtend_v2s_prepare_output(union pixtOut * output)
 
     output->v2s.crcDataLow = crc_data & 0xff;
     output->v2s.crcDataHigh = (crc_data >> 8) & 0xff;
+
+    return true;
 }
 
 
-bool pixtend_v2s_parse_input(union pixtIn * input)
+static bool pixtend_v2s_parse_input(union pixtIn * input)
 {
     int16_t crc_data;
     int16_t crc_header;
@@ -40,7 +43,14 @@ bool pixtend_v2s_parse_input(union pixtIn * input)
 }
 
 
-bool pixtend_v2s_set_do(union pixtOut * output, size_t bit, bool enable)
+static size_t pixtend_v2s_get_transfer_size(void)
+{
+    // tx and rx structures are the same size, so return just one of them
+    return sizeof(struct pixtOutV2S);
+}
+
+
+static bool pixtend_v2s_set_do(union pixtOut * output, size_t bit, bool enable)
 {
     uint8_t value;
 
@@ -61,7 +71,7 @@ bool pixtend_v2s_set_do(union pixtOut * output, size_t bit, bool enable)
 }
 
 
-bool pixtend_v2s_set_ro(union pixtOut * output, size_t bit, bool enable)
+static bool pixtend_v2s_set_ro(union pixtOut * output, size_t bit, bool enable)
 {
     uint8_t value;
 
@@ -82,7 +92,42 @@ bool pixtend_v2s_set_ro(union pixtOut * output, size_t bit, bool enable)
 
 }
 
-bool pixtend_v2s_get_di(union pixtIn * input, size_t bit, bool * enable)
+
+static bool pixtend_v2s_get_fw(union pixtIn * input, int * version)
+{
+
+    if(version) {
+        *version = input->v2s.byFirmware;
+    }
+
+    return true;
+}
+
+
+static bool pixtend_v2s_get_hw(union pixtIn * input, int * version)
+{
+    if(version) {
+        *version = input->v2s.byHardware;
+    }
+
+    return true;
+}
+
+
+static bool pixtend_v2s_get_model(union pixtIn * input, char * model, char * submodel)
+{
+    if(model) {
+        *model = '2';
+    }
+    if(submodel) {
+        *model = (char)input->v2s.byModelIn;
+    }
+
+    return true;
+}
+
+
+static bool pixtend_v2s_get_di(union pixtIn * input, size_t bit, bool * enable)
 {
     if(bit > 3) {
         return false;
@@ -95,3 +140,13 @@ bool pixtend_v2s_get_di(union pixtIn * input, size_t bit, bool * enable)
     return true;
 }
 
+
+void pixtend_v2s_init(struct pixtend * pxt)
+{
+    if(pxt) {
+        pxt->prepare_output = pixtend_v2s_prepare_output;
+        pxt->parse_input = pixtend_v2s_parse_input;
+        pxt->get_transfer_size = pixtend_v2s_get_transfer_size;
+        pxt->get_model = pixtend_v2s_get_model;
+    }
+}

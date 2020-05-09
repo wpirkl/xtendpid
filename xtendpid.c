@@ -15,7 +15,8 @@
 
 #include "app_interface.h"
 
-#include "../pixtend.h"
+#include "pixtend.h"
+#include "xtendpid.h"
 
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -30,9 +31,13 @@ static uint16_t delay;
 
 static int fd = 0;
 
+struct pixtend pixt;
 static union pixtOut tx[2];
 static union pixtIn rx[2];
 static volatile int buffer_index = 0;
+
+static char model = '2';
+static char sub_model = 'S';
 
 
 static void print_buffer(uint8_t * buffer)
@@ -50,40 +55,30 @@ static void * worker_thread(void * user_data)
 {
     int ret = 0;
 
+    size_t transfer_size = pixt_get_transfer_size(&pixt);
+
     for(;running;)
     {
         pthread_mutex_lock(&mutex);
 
         int index = buffer_index;
 
-        pixtend_v2s_prepare_output(&tx[index]);
-
-//        printf("tx:\n");
-//        print_buffer((uint8_t*)&tx);
-
-//        printf("delay is: %d\n", delay);
-//        printf("speed is: %d\n", speed);
-//        printf("bits is: %d\n", bits);
-
+        pixt_prepare_output(&pixt, &tx[index]);
 
         // here we can do the transfer
         struct spi_ioc_transfer tr = {
                 .tx_buf = (unsigned long)&tx[index],
                 .rx_buf = (unsigned long)&rx[index],
-                .len = sizeof(union pixtIn),
+                .len = transfer_size,
                 .delay_usecs = delay,
                 .speed_hz = speed,
                 .bits_per_word = bits,
         };
 
         ret = ioctl(fd, SPI_IOC_MESSAGE(1), &tr);
-//        printf("ret is: %d\n", ret);
         if(ret > 0)
         {
-//            printf("rx:\n");
-//            print_buffer((uint8_t*)&rx);
-
-            if(!pixtend_v2s_parse_input(&rx[index]))
+            if(!pixt_parse_input(&pixt, &rx[index]))
             {
                 ret = -1;
             }
@@ -91,7 +86,10 @@ static void * worker_thread(void * user_data)
             {
                 index = (index + 1) & 1;
                 buffer_index = index;
+                printf("crc error!\n");
             }
+        } else {
+            printf("SPI transfer error!\n");
         }
 
         pthread_mutex_unlock(&mutex);
@@ -143,11 +141,6 @@ static int spi_init(void)
     ret = ioctl(fd, SPI_IOC_RD_MAX_SPEED_HZ, &speed_get);
     if (ret == -1) return ret;
 
-    printf("spi mode: %d\n", mode_get);
-    printf("bits per word: %d\n", bits_get);
-    printf("max speed: %d Hz (%d KHz)\n", speed_get, speed_get/1000);
-
-
     return 0;
 }
 
@@ -159,16 +152,29 @@ static void spi_deinit(void)
     }
 }
 
+
+static void parse_opts(int argc, char * argv[])
+{
+    // here we could change the pixtend model for example
+}
+
+
 int app_main(int argc, char * argv[])
 {
+
+    parse_opts(argc, argv);
+
+    if(!pixt_init(&pixt, model, sub_model))
+    {
+        printf("unknown model: %c%c\n", model, sub_model);
+        return -1;
+    }
+
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setstacksize(&attr, 0x100000);
 
     int ret = 0;
-
-    printf("size of out: %d\n", sizeof(tx));
-    printf("size of in: %d\n", sizeof(rx));
 
     mode = 0;
     speed = 700000;
