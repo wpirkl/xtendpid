@@ -12,6 +12,7 @@
 #include <linux/types.h>
 #include <linux/spi/spidev.h>
 
+#include <zmq.h>
 
 #include "app_interface.h"
 
@@ -39,13 +40,16 @@ static volatile int buffer_index = 0;
 static char model = '2';
 static char sub_model = 'S';
 
+static uint16_t port = 5555;
+static char address[256] = "*";
 
-static void print_buffer(uint8_t * buffer)
+
+static void print_buffer(uint8_t * buffer, size_t len)
 {
     int ret;
 
-    for (ret = 0; ret < sizeof(union pixtOut); ret++) {
-            if (!(ret % 8)) puts("");
+    for (ret = 0; ret < len; ++ret) {
+            if (!(ret % 8) && ret > 0) puts("");
             printf("%.2X ", buffer[ret]);
     }
     puts("");
@@ -81,12 +85,12 @@ static void * worker_thread(void * user_data)
             if(!pixt_parse_input(&pixt, &rx[index]))
             {
                 ret = -1;
+                // print_buffer(&rx[index]);
             }
             else
             {
                 index = (index + 1) & 1;
                 buffer_index = index;
-                printf("crc error!\n");
             }
         } else {
             printf("SPI transfer error!\n");
@@ -153,9 +157,29 @@ static void spi_deinit(void)
 }
 
 
+static void terminate(int signum)
+{
+    running = false;
+    signal(SIGINT, SIG_DFL);
+}
+
+
 static void parse_opts(int argc, char * argv[])
 {
     // here we could change the pixtend model for example
+}
+
+
+static void parse_cmd(union xtendpid_cmds * cmd, size_t cmd_len, union xtendpid_answer * answer, size_t * answer_len)
+{
+    printf("received:\n");
+    print_buffer(&cmd->base.cmd, sizeof(union xtendpid_cmds));
+
+    answer->base.return_code = RC_UNKNOWN_CMD;
+    *answer_len = 1;
+
+    printf("sending:\n");
+    print_buffer(&answer->base.return_code, *answer_len);
 }
 
 
@@ -164,10 +188,16 @@ int app_main(int argc, char * argv[])
 
     parse_opts(argc, argv);
 
+    printf("initializing pixtend to expect model %c%c... ", model, sub_model);
+
     if(!pixt_init(&pixt, model, sub_model))
     {
-        printf("unknown model: %c%c\n", model, sub_model);
+        printf("fail\n");
         return -1;
+    }
+    else
+    {
+        printf("pass\n");
     }
 
     pthread_attr_t attr;
@@ -181,42 +211,105 @@ int app_main(int argc, char * argv[])
     bits = 8;
     delay = 0;
 
+    printf("initializing SPI... ");
+
     ret = spi_init();
     if(ret < 0)
     {
-         printf("spi init failed!\n");
+         printf("failed\n");
          return ret;
     }
+    else
+    {
+         printf("pass\n");
+    }
+
+    signal(SIGINT, terminate);
+
+    printf("creating worker thread... ");
 
     if(pthread_create(&pth, &attr, worker_thread, NULL) < 0)
     {
-        printf("worker_thread pthread_create failed");
+        printf("fail\n");
         return -1;
     }
-
-
-    int i;
-
-    for(i=0; i<10 && running; ++i)
+    else
     {
-        pthread_mutex_lock(&mutex);
-        printf("hello from mainloop %d\n", i);
-        pthread_mutex_unlock(&mutex);
-
-        sleep(1);
+        printf("pass\n");
     }
 
-    if(!running)
+    printf("initializing zmq... ");
+
+    void * context = zmq_ctx_new();
+    void * responder = zmq_socket(context, ZMQ_REP);
+    char connect_str[1024];
+
+    snprintf(connect_str, sizeof(connect_str), "tcp://%s:%u", address, port);
+
+    printf("binding to: \"%s\"... ", connect_str);
+
+    int rc = zmq_bind(responder, connect_str);
+    if(rc != 0)
     {
-        printf("worker thread died?\n");
+        printf("fail\n");
+        running = false;
     }
+    else
+    {
+        printf("pass\n");
+    }
+
+    printf("accepting messages\n");
+
+    union xtendpid_cmds cmd;
+    union xtendpid_answer answer;
+    size_t answer_len = 0;
+
+    for(;running;)
+    {
+        memset(&cmd, 0, sizeof(cmd));
+        memset(&answer, 0, sizeof(answer));
+
+        int len = zmq_recv(responder, &cmd, sizeof(cmd), 0);
+        if(len < 0)
+        {
+            printf("error receiving from zmq: %d\n", len);
+        }
+        else
+        {
+            // parse the command and do some answering
+
+            if(!running)
+            {
+                answer.base.return_code = RC_DEAD;
+            }
+            else
+            {
+                // do the job
+                parse_cmd(&cmd, len, &answer, &answer_len);
+            }
+
+            // and send the return code back
+            len = zmq_send(responder, &answer.base.return_code, answer_len, 0);
+            if(len < 0)
+            {
+                printf("error sending to zmq: %d\n", len);
+            }
+        }
+    }
+
+    printf("stopping worker thread\n");
 
     // stop worker thread
     running = false;
     pthread_join(pth, NULL);
 
+    printf("deinit spi\n");
+
     // close spi
     spi_deinit();
+
+    printf("exit\n");
 
     return 0;
 }

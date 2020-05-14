@@ -31,6 +31,8 @@ struct pixtend {
     bool (*parse_input)(union pixtIn * input);
     size_t (*get_transfer_size)(void);
     bool (*get_model)(union pixtIn * input, char * model, char * submodel);
+    bool (*get_fw_version)(union pixtIn * input, uint8_t * version);
+    bool (*get_hw_version)(union pixtIn * input, uint8_t * version);
 };
 
 

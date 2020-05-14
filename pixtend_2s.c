@@ -93,7 +93,7 @@ static bool pixtend_v2s_set_ro(union pixtOut * output, size_t bit, bool enable)
 }
 
 
-static bool pixtend_v2s_get_fw(union pixtIn * input, int * version)
+static bool pixtend_v2s_get_fw(union pixtIn * input, uint8_t * version)
 {
 
     if(version) {
@@ -104,7 +104,7 @@ static bool pixtend_v2s_get_fw(union pixtIn * input, int * version)
 }
 
 
-static bool pixtend_v2s_get_hw(union pixtIn * input, int * version)
+static bool pixtend_v2s_get_hw(union pixtIn * input, uint8_t * version)
 {
     if(version) {
         *version = input->v2s.byHardware;
@@ -148,5 +148,7 @@ void pixtend_v2s_init(struct pixtend * pxt)
         pxt->parse_input = pixtend_v2s_parse_input;
         pxt->get_transfer_size = pixtend_v2s_get_transfer_size;
         pxt->get_model = pixtend_v2s_get_model;
+        pxt->get_fw_version = pixtend_v2s_get_fw;
+        pxt->get_hw_version = pixtend_v2s_get_hw;
     }
 }

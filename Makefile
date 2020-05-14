@@ -27,6 +27,7 @@ CFLAGS  += -Wall
 CFLAGS  += -DPROGRAM=$(PROGRAM)
 CFLAGS  += -I. -Ilinux_daemon
 CFLAGS  += -pthread
+CFLAGS  += -lzmq
 
 CPPFLAGS = $(CFLAGS) -lgcc
 
