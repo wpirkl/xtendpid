@@ -120,7 +120,7 @@ static bool pixtend_v2s_get_model(union pixtIn * input, char * model, char * sub
         *model = '2';
     }
     if(submodel) {
-        *model = (char)input->v2s.byModelIn;
+        *submodel = (char)input->v2s.byModelIn;
     }
 
     return true;

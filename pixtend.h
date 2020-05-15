@@ -79,4 +79,33 @@ static inline bool pixt_init(struct pixtend * pixt, char model, char sub_model)
 }
 
 
+static inline bool pixt_get_model(struct pixtend * pixt, union pixtIn * input, char * model, char * submodel)
+{
+    if(pixt) {
+        return pixt->get_model(input, model, submodel);
+    }
+
+    return false;
+}
+
+
+static inline bool pixt_get_fw_version(struct pixtend * pixt, union pixtIn * input, uint8_t * version)
+{
+    if(pixt) {
+        return pixt->get_fw_version(input, version);
+    }
+
+    return false;
+}
+
+static inline bool pixt_get_hw_version(struct pixtend * pixt, union pixtIn * input, uint8_t * version)
+{
+    if(pixt) {
+        return pixt->get_hw_version(input, version);
+    }
+
+    return false;
+}
+
+
 // eof

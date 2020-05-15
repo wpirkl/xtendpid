@@ -41,6 +41,7 @@ enum xtendpid_return_code {
     RC_SUCCESS = 0,
     RC_DEAD,
     RC_UNKNOWN_CMD,
+    RC_FAIL,
 };
 
 

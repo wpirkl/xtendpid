@@ -170,6 +170,76 @@ static void parse_opts(int argc, char * argv[])
 }
 
 
+
+
+static bool cmd_get_model(union xtendpid_cmds * cmd, size_t cmd_len, union xtendpid_answer * answer, size_t * answer_len)
+{
+    size_t rd_index = (buffer_index + 1) & 1;
+
+    char model = '?';
+    char sub_model = '?';
+
+    if(pixt_get_model(&pixt, &rx[rd_index], &model, &sub_model))
+    {
+        answer->base.return_code = RC_SUCCESS;
+        answer->get_model.model = model;
+        answer->get_model.sub_model = sub_model;
+
+        *answer_len = sizeof(answer->get_model);
+        return true;
+    }
+    return false;
+}
+
+static bool cmd_get_fw_version(union xtendpid_cmds * cmd, size_t cmd_len, union xtendpid_answer * answer, size_t * answer_len)
+{
+    size_t rd_index = (buffer_index + 1) & 1;
+
+    uint8_t version = 0;
+    if(pixt_get_fw_version(&pixt, &rx[rd_index], &version))
+    {
+        answer->base.return_code = RC_SUCCESS;
+        answer->get_fw_version.version = version;
+
+        *answer_len = sizeof(answer->get_fw_version);
+
+        return true;
+    }
+    return false;
+}
+
+static bool cmd_get_hw_version(union xtendpid_cmds * cmd, size_t cmd_len, union xtendpid_answer * answer, size_t * answer_len)
+{
+    size_t rd_index = (buffer_index + 1) & 1;
+
+    uint8_t version = 0;
+    if(pixt_get_hw_version(&pixt, &rx[rd_index], &version))
+    {
+        answer->base.return_code = RC_SUCCESS;
+        answer->get_hw_version.version = version;
+
+        *answer_len = sizeof(answer->get_hw_version);
+
+        return true;
+    }
+    return false;
+}
+
+
+
+// pixt_get_fw_version
+// pixt_get_hw_version
+
+//typedef void (*command_handler)(union xtendpid_cmds *, size_t, union xtendpid_answer, size_t *);
+
+
+static const bool (*command_handlers[])(union xtendpid_cmds *, size_t, union xtendpid_answer *, size_t *) = {
+    cmd_get_model,
+    cmd_get_fw_version,
+    cmd_get_hw_version,
+};
+
+
 static void parse_cmd(union xtendpid_cmds * cmd, size_t cmd_len, union xtendpid_answer * answer, size_t * answer_len)
 {
     printf("received:\n");
@@ -177,6 +247,18 @@ static void parse_cmd(union xtendpid_cmds * cmd, size_t cmd_len, union xtendpid_
 
     answer->base.return_code = RC_UNKNOWN_CMD;
     *answer_len = 1;
+
+    if(cmd->base.cmd < sizeof(command_handlers) / sizeof(void*))
+    {
+        pthread_mutex_lock(&mutex);
+
+        if(!command_handlers[cmd->base.cmd](cmd, cmd_len, answer, answer_len))
+        {
+            answer->base.return_code = RC_FAIL;
+        }
+
+        pthread_mutex_unlock(&mutex);
+    }
 
     printf("sending:\n");
     print_buffer(&answer->base.return_code, *answer_len);
