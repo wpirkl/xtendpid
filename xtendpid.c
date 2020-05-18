@@ -33,7 +33,7 @@ static uint16_t delay;
 static int fd = 0;
 
 struct pixtend pixt;
-static union pixtOut tx[2];
+static union pixtOut tx;        // no need for double buffer here
 static union pixtIn rx[2];
 static volatile int buffer_index = 0;
 
@@ -61,17 +61,36 @@ static void * worker_thread(void * user_data)
 
     size_t transfer_size = pixt_get_transfer_size(&pixt);
 
-    for(;running;)
+    void * context = user_data;
+    void * publisher = zmq_socket(context, ZMQ_PUB);
+    char connect_str[1024];
+
+    snprintf(connect_str, sizeof(connect_str), "tcp://%s:%u", address, port + 1);
+
+    ret = zmq_bind(publisher, connect_str);
+    if(ret != 0)
     {
+        printf("binding publisher port failed!/n");
+        running = false;
+    }
+
+    size_t cnt = 0;
+
+    for(;running;++cnt)
+    {
+        if((cnt & 0xf) == 0) {
+            zmq_send(publisher, &cnt, sizeof(size_t), 0);
+        }
+
         pthread_mutex_lock(&mutex);
 
         int index = buffer_index;
 
-        pixt_prepare_output(&pixt, &tx[index]);
+        pixt_prepare_output(&pixt, &tx);
 
         // here we can do the transfer
         struct spi_ioc_transfer tr = {
-                .tx_buf = (unsigned long)&tx[index],
+                .tx_buf = (unsigned long)&tx,
                 .rx_buf = (unsigned long)&rx[index],
                 .len = transfer_size,
                 .delay_usecs = delay,
@@ -109,6 +128,8 @@ static void * worker_thread(void * user_data)
         printf("unexpected end of worker thread! ret is: %d\n", ret);
         running = false;
     }
+
+    zmq_close(publisher);
 
     return NULL;
 }
@@ -308,18 +329,6 @@ int app_main(int argc, char * argv[])
 
     signal(SIGINT, terminate);
 
-    printf("creating worker thread... ");
-
-    if(pthread_create(&pth, &attr, worker_thread, NULL) < 0)
-    {
-        printf("fail\n");
-        return -1;
-    }
-    else
-    {
-        printf("pass\n");
-    }
-
     printf("initializing zmq... ");
 
     void * context = zmq_ctx_new();
@@ -335,6 +344,18 @@ int app_main(int argc, char * argv[])
     {
         printf("fail\n");
         running = false;
+    }
+    else
+    {
+        printf("pass\n");
+    }
+
+    printf("creating worker thread... ");
+
+    if(pthread_create(&pth, &attr, worker_thread, context) < 0)
+    {
+        printf("fail\n");
+        return -1;
     }
     else
     {
@@ -390,6 +411,11 @@ int app_main(int argc, char * argv[])
 
     // close spi
     spi_deinit();
+
+    // close sockets and context
+    printf("cleanup sockets\n");
+    zmq_close(responder);
+    zmq_ctx_destroy(context);
 
     printf("exit\n");
 
