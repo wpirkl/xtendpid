@@ -106,7 +106,7 @@ static inline size_t pixt_get_transfer_size(const struct pixtend * pixt)
 }
 
 
-static inline bool pixt_get_model(struct pixtend * pixt, union pixtIn * input, char * model, char * submodel)
+static inline bool pixt_get_model(const struct pixtend * pixt, union pixtIn * input, char * model, char * submodel)
 {
     if(pixt) {
         return pixt->get_model(input, model, submodel);
@@ -116,7 +116,7 @@ static inline bool pixt_get_model(struct pixtend * pixt, union pixtIn * input, c
 }
 
 
-static inline bool pixt_get_fw_version(struct pixtend * pixt, union pixtIn * input, uint8_t * version)
+static inline bool pixt_get_fw_version(const struct pixtend * pixt, union pixtIn * input, uint8_t * version)
 {
     if(pixt) {
         return pixt->get_fw_version(input, version);
@@ -125,7 +125,7 @@ static inline bool pixt_get_fw_version(struct pixtend * pixt, union pixtIn * inp
     return false;
 }
 
-static inline bool pixt_get_hw_version(struct pixtend * pixt, union pixtIn * input, uint8_t * version)
+static inline bool pixt_get_hw_version(const struct pixtend * pixt, union pixtIn * input, uint8_t * version)
 {
     if(pixt) {
         return pixt->get_hw_version(input, version);
@@ -134,7 +134,7 @@ static inline bool pixt_get_hw_version(struct pixtend * pixt, union pixtIn * inp
     return false;
 }
 
-static inline size_t pixt_get_num_di(struct pixtend * pixt)
+static inline size_t pixt_get_num_di(const struct pixtend * pixt)
 {
     if(pixt) {
         return pixt->get_num_di();
@@ -143,7 +143,7 @@ static inline size_t pixt_get_num_di(struct pixtend * pixt)
     return 0;
 }
 
-static inline uint8_t pixt_get_di(struct pixtend * pixt, union pixtIn * input, size_t di)
+static inline uint8_t pixt_get_di(const struct pixtend * pixt, union pixtIn * input, size_t di)
 {
     if(pixt) {
         return pixt->get_di(input, di);
