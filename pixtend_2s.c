@@ -50,49 +50,6 @@ static size_t pixtend_v2s_get_transfer_size(void)
 }
 
 
-static bool pixtend_v2s_set_do(union pixtOut * output, size_t bit, bool enable)
-{
-    uint8_t value;
-
-    if(bit > 3) {
-        return false;
-    }
-
-    value = output->v2s.byDigitalOut;
-    if(enable) {
-        value |= (uint8_t)(1 << bit);
-    } else {
-        value &= (uint8_t)(~(1 << bit));
-    }
-
-    output->v2s.byDigitalOut = value;
-
-    return true;
-}
-
-
-static bool pixtend_v2s_set_ro(union pixtOut * output, size_t bit, bool enable)
-{
-    uint8_t value;
-
-    if(bit > 3) {
-        return false;
-    }
-
-    value = output->v2s.byRelayOut;
-    if(enable) {
-        value |= (uint8_t)(1 << bit);
-    } else {
-        value &= (uint8_t)(~(1 << bit));
-    }
-
-    output->v2s.byRelayOut = value;
-
-    return true;
-
-}
-
-
 static bool pixtend_v2s_get_fw(union pixtIn * input, uint8_t * version)
 {
 
@@ -143,6 +100,82 @@ static uint8_t pixtend_v2s_get_di(union pixtIn * input, size_t bit)
 }
 
 
+static size_t pixtend_v2s_get_num_do(void)
+{
+    return 3;
+}
+
+
+static bool pixtend_v2s_set_do(union pixtOut * output, size_t bit, bool enable)
+{
+    uint8_t value;
+
+    if(bit > pixtend_v2s_get_num_do()) {
+        return false;
+    }
+
+    value = output->v2s.byDigitalOut;
+    if(enable) {
+        value |= (uint8_t)(1 << bit);
+    } else {
+        value &= (uint8_t)(~(1 << bit));
+    }
+
+    output->v2s.byDigitalOut = value;
+
+    return true;
+}
+
+
+static size_t pixtend_v2s_get_num_ro(void)
+{
+    return 3;
+}
+
+
+static bool pixtend_v2s_set_ro(union pixtOut * output, size_t bit, bool enable)
+{
+    uint8_t value;
+
+    if(bit > 3) {
+        return false;
+    }
+
+    value = output->v2s.byRelayOut;
+    if(enable) {
+        value |= (uint8_t)(1 << bit);
+    } else {
+        value &= (uint8_t)(~(1 << bit));
+    }
+
+    output->v2s.byRelayOut = value;
+
+    return true;
+
+}
+
+
+static const struct pixtend pixtend_v2s = {
+    .prepare_output = pixtend_v2s_prepare_output,
+    .parse_input =pixtend_v2s_parse_input,
+    .get_transfer_size = pixtend_v2s_get_transfer_size,
+    .get_model = pixtend_v2s_get_model,
+    .get_fw_version = pixtend_v2s_get_fw,
+    .get_hw_version = pixtend_v2s_get_hw,
+    .get_num_di = pixtend_v2s_get_num_di,
+    .get_di = pixtend_v2s_get_di,
+    .get_num_do = pixtend_v2s_get_num_do,
+    .set_do = pixtend_v2s_set_do,
+    .get_num_ro = pixtend_v2s_get_num_ro,
+    .set_ro = pixtend_v2s_set_ro,
+};
+
+
+const struct pixtend * pixtend_v2s_get(void) {
+    return &pixtend_v2s;
+}
+
+
 void pixtend_v2s_init(struct pixtend * pxt)
 {
     if(pxt) {
@@ -154,5 +187,9 @@ void pixtend_v2s_init(struct pixtend * pxt)
         pxt->get_hw_version = pixtend_v2s_get_hw;
         pxt->get_num_di = pixtend_v2s_get_num_di;
         pxt->get_di = pixtend_v2s_get_di;
+        pxt->get_num_do = pixtend_v2s_get_num_do;
+        pxt->set_do = pixtend_v2s_set_do;
+        pxt->get_num_ro = pixtend_v2s_get_num_ro;
+        pxt->set_ro = pixtend_v2s_set_ro;
     }
 }

@@ -35,7 +35,43 @@ struct pixtend {
     bool (*get_hw_version)(union pixtIn * input, uint8_t * version);
     size_t (*get_num_di)(void);
     uint8_t (*get_di)(union pixtIn * input, size_t di);
+    size_t (*get_num_do)(void);
+    size_t (*set_do)(union pixtIn * input, size_t o, bool enable);
 };
+
+
+static inline bool pixt_init(struct pixtend * pixt, char model, char sub_model)
+{
+    switch(model)
+    {
+        case '2': {
+            if(sub_model == 'S') {
+                pixtend_v2s_init(pixt);
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+
+    return false;
+}
+
+
+static inline const struct pixtend * pixt_get(char model, char sub_model)
+{
+    switch(model)
+    {
+        case '2': {
+            if(sub_model == 'S') {
+                return pixtend_v2s_get();
+            }
+            break;
+        }
+    }
+
+    return NULL;
+}
 
 
 static inline bool pixt_prepare_output(const struct pixtend * pixt, union pixtOut * output)
@@ -57,24 +93,11 @@ static inline bool pixt_parse_input(const struct pixtend * pixt, union pixtIn * 
     return false;
 }
 
+
 static inline size_t pixt_get_transfer_size(const struct pixtend * pixt)
 {
     if(pixt) {
         return pixt->get_transfer_size();
-    }
-
-    return false;
-}
-
-
-static inline bool pixt_init(struct pixtend * pixt, char model, char sub_model)
-{
-    switch(model)
-    {
-        case '2': {
-            pixtend_v2s_init(pixt);
-            return true;
-        }
     }
 
     return false;

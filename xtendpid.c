@@ -34,7 +34,7 @@ static uint16_t delay;
 
 static int fd = 0;
 
-struct pixtend pixt;
+static const struct pixtend * pixt;
 static union pixtOut tx;        // no need for double buffer here
 static union pixtIn rx[2];      // only worker thread should write this!
 static volatile int buffer_index = 0;
@@ -111,7 +111,7 @@ static bool cmd_get_model(union xtendpid_cmds * cmd, size_t cmd_len, union xtend
         char model = '?';
         char sub_model = '?';
 
-        if(pixt_get_model(&pixt, &rx[rd_index], &model, &sub_model))
+        if(pixt_get_model(pixt, &rx[rd_index], &model, &sub_model))
         {
             answer->base.return_code = RC_SUCCESS;
             answer->get_model.model = model;
@@ -130,7 +130,7 @@ static bool cmd_get_fw_version(union xtendpid_cmds * cmd, size_t cmd_len, union 
         size_t rd_index = (buffer_index + 1) & 1;
 
         uint8_t version = 0;
-        if(pixt_get_fw_version(&pixt, &rx[rd_index], &version))
+        if(pixt_get_fw_version(pixt, &rx[rd_index], &version))
         {
             answer->base.return_code = RC_SUCCESS;
             answer->get_fw_version.version = version;
@@ -149,7 +149,7 @@ static bool cmd_get_hw_version(union xtendpid_cmds * cmd, size_t cmd_len, union 
         size_t rd_index = (buffer_index + 1) & 1;
 
         uint8_t version = 0;
-        if(pixt_get_hw_version(&pixt, &rx[rd_index], &version))
+        if(pixt_get_hw_version(pixt, &rx[rd_index], &version))
         {
             answer->base.return_code = RC_SUCCESS;
             answer->get_hw_version.version = version;
@@ -178,7 +178,7 @@ static bool cmd_get_di(union xtendpid_cmds * cmd, size_t cmd_len, union xtendpid
 
         size_t rd_index = (buffer_index + 1) & 1;
 
-        uint8_t value = pixt_get_di(&pixt, &rx[rd_index], cmd->get_di.di);
+        uint8_t value = pixt_get_di(pixt, &rx[rd_index], cmd->get_di.di);
         if(value != 0xff) {
             prepare_answer_get_di(answer, answer_len, cmd->get_di.di, value);
             return true;
@@ -226,8 +226,8 @@ static void * worker_thread(void * user_data)
 {
     int ret = 0;
 
-    const size_t transfer_size = pixt_get_transfer_size(&pixt);
-    const size_t di_num = pixt_get_num_di(&pixt);
+    const size_t transfer_size = pixt_get_transfer_size(pixt);
+    const size_t di_num = pixt_get_num_di(pixt);
 
     void * context = user_data;
     void * publisher = zmq_socket(context, ZMQ_PUB);
@@ -256,7 +256,7 @@ static void * worker_thread(void * user_data)
         int new_index = index;              // new data will go here
         int old_index = (index + 1) & 1;    // afterwards, this points to the old data until it gets updated
 
-        pixt_prepare_output(&pixt, &tx);
+        pixt_prepare_output(pixt, &tx);
 
         // here we can do the transfer
         struct spi_ioc_transfer tr = {
@@ -271,7 +271,7 @@ static void * worker_thread(void * user_data)
         ret = ioctl(fd, SPI_IOC_MESSAGE(1), &tr);
         if(ret > 0)
         {
-            if(!pixt_parse_input(&pixt, &rx[new_index]))
+            if(!pixt_parse_input(pixt, &rx[new_index]))
             {
                 // do we really want to exit if we got a crc error?
                 ret = -1;
@@ -293,7 +293,7 @@ static void * worker_thread(void * user_data)
         for(di = 0; di < di_num; ++di)
         {
             uint8_t new_value;
-            if((new_value = pixt_get_di(&pixt, &rx[new_index], di)) != pixt_get_di(&pixt, &rx[old_index], di))
+            if((new_value = pixt_get_di(pixt, &rx[new_index], di)) != pixt_get_di(pixt, &rx[old_index], di))
             {
                 prepare_answer_get_di(&answer, &answer_len, di, new_value);
 
@@ -340,7 +340,8 @@ int app_main(int argc, char * argv[])
 
     printf("initializing pixtend to expect model %c%c... ", model, sub_model);
 
-    if(!pixt_init(&pixt, model, sub_model))
+    pixt = pixt_get(model, sub_model);
+    if(!pixt)
     {
         printf("fail\n");
         return -1;
