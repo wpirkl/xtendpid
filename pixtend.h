@@ -36,9 +36,9 @@ struct pixtend {
     size_t (*get_num_di)(void);
     uint8_t (*get_di)(union pixtIn * input, size_t di);
     size_t (*get_num_do)(void);
-    size_t (*set_do)(union pixtOut * output, size_t o, bool enable);
+    bool (*set_do)(union pixtOut * output, size_t o, bool enable);
     size_t (*get_num_ro)(void);
-    size_t (*set_ro)(union pixtOut * output, size_t o, bool enable);
+    bool (*set_ro)(union pixtOut * output, size_t o, bool enable);
 };
 
 
