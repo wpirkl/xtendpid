@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
+#include <stdlib.h>
+
 #include <pthread.h>
 #include <signal.h>
 #include <time.h>
@@ -34,7 +36,7 @@ static int fd = 0;
 
 struct pixtend pixt;
 static union pixtOut tx;        // no need for double buffer here
-static union pixtIn rx[2];
+static union pixtIn rx[2];      // only worker thread should write this!
 static volatile int buffer_index = 0;
 
 static char model = '2';
@@ -55,84 +57,6 @@ static void print_buffer(uint8_t * buffer, size_t len)
     puts("");
 }
 
-static void * worker_thread(void * user_data)
-{
-    int ret = 0;
-
-    size_t transfer_size = pixt_get_transfer_size(&pixt);
-
-    void * context = user_data;
-    void * publisher = zmq_socket(context, ZMQ_PUB);
-    char connect_str[1024];
-
-    snprintf(connect_str, sizeof(connect_str), "tcp://%s:%u", address, port + 1);
-
-    ret = zmq_bind(publisher, connect_str);
-    if(ret != 0)
-    {
-        printf("binding publisher port failed!/n");
-        running = false;
-    }
-
-    size_t cnt = 0;
-
-    for(;running;++cnt)
-    {
-        if((cnt & 0xf) == 0) {
-            zmq_send(publisher, &cnt, sizeof(size_t), 0);
-        }
-
-        pthread_mutex_lock(&mutex);
-
-        int index = buffer_index;
-
-        pixt_prepare_output(&pixt, &tx);
-
-        // here we can do the transfer
-        struct spi_ioc_transfer tr = {
-                .tx_buf = (unsigned long)&tx,
-                .rx_buf = (unsigned long)&rx[index],
-                .len = transfer_size,
-                .delay_usecs = delay,
-                .speed_hz = speed,
-                .bits_per_word = bits,
-        };
-
-        ret = ioctl(fd, SPI_IOC_MESSAGE(1), &tr);
-        if(ret > 0)
-        {
-            if(!pixt_parse_input(&pixt, &rx[index]))
-            {
-                ret = -1;
-                // print_buffer(&rx[index]);
-            }
-            else
-            {
-                index = (index + 1) & 1;
-                buffer_index = index;
-            }
-        } else {
-            printf("SPI transfer error!\n");
-        }
-
-        pthread_mutex_unlock(&mutex);
-
-        if(ret <= 0) break;
-
-        // do it every 10 ms
-        usleep(10000);
-    }
-
-    if(running)
-    {
-        printf("unexpected end of worker thread! ret is: %d\n", ret);
-        running = false;
-    }
-
-    zmq_close(publisher);
-
-    return NULL;
-}
 
 static int spi_init(void)
 {
@@ -169,6 +93,7 @@ static int spi_init(void)
     return 0;
 }
 
+
 static void spi_deinit(void)
 {
     if(fd > 0)
@@ -178,86 +103,96 @@ static void spi_deinit(void)
 }
 
 
-static void terminate(int signum)
-{
-    running = false;
-    signal(SIGINT, SIG_DFL);
-}
-
-
-static void parse_opts(int argc, char * argv[])
-{
-    // here we could change the pixtend model for example
-}
-
-
-
-
 static bool cmd_get_model(union xtendpid_cmds * cmd, size_t cmd_len, union xtendpid_answer * answer, size_t * answer_len)
 {
-    size_t rd_index = (buffer_index + 1) & 1;
+    if(cmd_len == sizeof(struct xtendpid_cmd_get_model)) {
+        size_t rd_index = (buffer_index + 1) & 1;
 
-    char model = '?';
-    char sub_model = '?';
+        char model = '?';
+        char sub_model = '?';
 
-    if(pixt_get_model(&pixt, &rx[rd_index], &model, &sub_model))
-    {
-        answer->base.return_code = RC_SUCCESS;
-        answer->get_model.model = model;
-        answer->get_model.sub_model = sub_model;
+        if(pixt_get_model(&pixt, &rx[rd_index], &model, &sub_model))
+        {
+            answer->base.return_code = RC_SUCCESS;
+            answer->get_model.model = model;
+            answer->get_model.sub_model = sub_model;
 
-        *answer_len = sizeof(answer->get_model);
-        return true;
+            *answer_len = sizeof(answer->get_model);
+            return true;
+        }
     }
     return false;
 }
 
 static bool cmd_get_fw_version(union xtendpid_cmds * cmd, size_t cmd_len, union xtendpid_answer * answer, size_t * answer_len)
 {
-    size_t rd_index = (buffer_index + 1) & 1;
+    if(cmd_len == sizeof(struct xtendpid_cmd_get_fw_version)) {
+        size_t rd_index = (buffer_index + 1) & 1;
 
-    uint8_t version = 0;
-    if(pixt_get_fw_version(&pixt, &rx[rd_index], &version))
-    {
-        answer->base.return_code = RC_SUCCESS;
-        answer->get_fw_version.version = version;
+        uint8_t version = 0;
+        if(pixt_get_fw_version(&pixt, &rx[rd_index], &version))
+        {
+            answer->base.return_code = RC_SUCCESS;
+            answer->get_fw_version.version = version;
 
-        *answer_len = sizeof(answer->get_fw_version);
+            *answer_len = sizeof(answer->get_fw_version);
 
-        return true;
+            return true;
+        }
     }
     return false;
 }
 
 static bool cmd_get_hw_version(union xtendpid_cmds * cmd, size_t cmd_len, union xtendpid_answer * answer, size_t * answer_len)
 {
-    size_t rd_index = (buffer_index + 1) & 1;
+    if(cmd_len == sizeof(struct xtendpid_cmd_get_hw_version)) {
+        size_t rd_index = (buffer_index + 1) & 1;
 
-    uint8_t version = 0;
-    if(pixt_get_hw_version(&pixt, &rx[rd_index], &version))
-    {
-        answer->base.return_code = RC_SUCCESS;
-        answer->get_hw_version.version = version;
+        uint8_t version = 0;
+        if(pixt_get_hw_version(&pixt, &rx[rd_index], &version))
+        {
+            answer->base.return_code = RC_SUCCESS;
+            answer->get_hw_version.version = version;
 
-        *answer_len = sizeof(answer->get_hw_version);
+            *answer_len = sizeof(answer->get_hw_version);
 
-        return true;
+            return true;
+        }
     }
     return false;
 }
 
 
+static void prepare_answer_get_di(union xtendpid_answer * answer, size_t * answer_len, size_t di, uint8_t value)
+{
+    answer->base.return_code = RC_SUCCESS;
+    answer->get_di.di = di;
+    answer->get_di.value = value;
+    *answer_len = sizeof(answer->get_di);
+}
 
-// pixt_get_fw_version
-// pixt_get_hw_version
 
-//typedef void (*command_handler)(union xtendpid_cmds *, size_t, union xtendpid_answer, size_t *);
+static bool cmd_get_di(union xtendpid_cmds * cmd, size_t cmd_len, union xtendpid_answer * answer, size_t * answer_len)
+{
+    if(cmd_len == sizeof(struct xtendpid_cmd_get_di)) {
+
+        size_t rd_index = (buffer_index + 1) & 1;
+
+        uint8_t value = pixt_get_di(&pixt, &rd[rd_index], cmd->get_di.di);
+        if(value != 0xff) {
+            prepare_answer_get_di(answer, answer_len, cmd->get_di.di, value);
+            return true;
+        }
+    }
+    return false;
+}
 
 
 static const bool (*command_handlers[])(union xtendpid_cmds *, size_t, union xtendpid_answer *, size_t *) = {
-    cmd_get_model,
-    cmd_get_fw_version,
-    cmd_get_hw_version,
+/* 0 */ cmd_get_model,
+/* 1 */ cmd_get_fw_version,
+/* 2 */ cmd_get_hw_version,
+/* 3 */ cmd_get_di,
 };
 
 
@@ -266,6 +201,7 @@ static void parse_cmd(union xtendpid_cmds * cmd, size_t cmd_len, union xtendpid_
     printf("received:\n");
     print_buffer(&cmd->base.cmd, sizeof(union xtendpid_cmds));
 
+    answer->base.cmd = cmd->base.cmd;
     answer->base.return_code = RC_UNKNOWN_CMD;
     *answer_len = 1;
 
@@ -283,6 +219,117 @@ static void parse_cmd(union xtendpid_cmds * cmd, size_t cmd_len, union xtendpid_
 
     printf("sending:\n");
     print_buffer(&answer->base.return_code, *answer_len);
+}
+
+
+static void * worker_thread(void * user_data)
+{
+    int ret = 0;
+
+    const size_t transfer_size = pixt_get_transfer_size(&pixt);
+    const size_t di_num = pixt_get_num_di(&pixt);
+
+    void * context = user_data;
+    void * publisher = zmq_socket(context, ZMQ_PUB);
+    char connect_str[1024];
+
+    snprintf(connect_str, sizeof(connect_str), "tcp://%s:%u", address, port + 1);
+
+    ret = zmq_bind(publisher, connect_str);
+    if(ret != 0)
+    {
+        printf("binding publisher port failed!/n");
+        running = false;
+    }
+
+    size_t cnt = 0;
+    size_t di;
+
+    union xtendpid_answer answer;
+    size_t answer_len;
+
+    for(;running;++cnt)
+    {
+        pthread_mutex_lock(&mutex);
+
+        int index = buffer_index;
+        int new_index = index;              // new data will go here
+        int old_index = (index + 1) & 1;    // afterwards, this points to the old data until it gets updated
+
+        pixt_prepare_output(&pixt, &tx);
+
+        // here we can do the transfer
+        struct spi_ioc_transfer tr = {
+                .tx_buf = (unsigned long)&tx,
+                .rx_buf = (unsigned long)&rx[new_index],
+                .len = transfer_size,
+                .delay_usecs = delay,
+                .speed_hz = speed,
+                .bits_per_word = bits,
+        };
+
+        ret = ioctl(fd, SPI_IOC_MESSAGE(1), &tr);
+        if(ret > 0)
+        {
+            if(!pixt_parse_input(&pixt, &rx[new_index]))
+            {
+                // do we really want to exit if we got a crc error?
+                ret = -1;
+                // print_buffer(&rx[index]);
+            }
+            else
+            {
+                buffer_index = old_index;
+            }
+        } else {
+            printf("SPI transfer error!\n");
+        }
+
+        pthread_mutex_unlock(&mutex);
+
+        if(ret <= 0) break;
+
+        // check digital inputs
+        for(di = 0; di < di_num; ++di)
+        {
+            uint8_t new_value;
+            if((new_value = pixt_get_di(&pixt, &rx[new_index])) != pixt_get_di(&pixt, &rx[old_index]))
+            {
+                prepare_answer_get_di(&answer, &answer_len, di, new_value);
+
+                // ship it without blocking
+                zmq_send(publisher, &answer, answer_len, 0);
+            }
+        }
+
+        // here we could take care of all the other stuff like temperature and humidity
+
+        // do it every 100 ms
+        usleep(100000);
+    }
+
+    if(running)
+    {
+        printf("unexpected end of worker thread! ret is: %d\n", ret);
+        running = false;
+    }
+
+    zmq_close(publisher);
+
+    return NULL;
+}
+
+
+static void terminate(int signum)
+{
+    running = false;
+    signal(SIGINT, SIG_DFL);
+}
+
+
+static void parse_opts(int argc, char * argv[])
+{
+    // here we could change the pixtend model for example
 }
 
 

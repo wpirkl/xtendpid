@@ -33,6 +33,8 @@ struct pixtend {
     bool (*get_model)(union pixtIn * input, char * model, char * submodel);
     bool (*get_fw_version)(union pixtIn * input, uint8_t * version);
     bool (*get_hw_version)(union pixtIn * input, uint8_t * version);
+    size_t (*get_num_di)(void);
+    uint8_t (*get_di)(union pixtIn * input, size_t di);
 };
 
 
@@ -105,6 +107,24 @@ static inline bool pixt_get_hw_version(struct pixtend * pixt, union pixtIn * inp
     }
 
     return false;
+}
+
+static inline size_t pixt_get_num_di(struct pixtend * pixt)
+{
+    if(pixt) {
+        return pixt->get_num_di()
+    }
+
+    return 0;
+}
+
+static inline uint8_t pixt_get_di(struct pixtend * pixt, union pixtIn * input, size_t di)
+{
+    if(pixt) {
+        return pixt->get_di(input, di);
+    }
+
+    return 0xff;
 }
 
 

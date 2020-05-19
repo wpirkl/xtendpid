@@ -127,17 +127,19 @@ static bool pixtend_v2s_get_model(union pixtIn * input, char * model, char * sub
 }
 
 
-static bool pixtend_v2s_get_di(union pixtIn * input, size_t bit, bool * enable)
+static size_t pixtend_v2s_get_num_di(void)
 {
-    if(bit > 3) {
-        return false;
+    return 3;
+}
+
+
+static uint8_t pixtend_v2s_get_di(union pixtIn * input, size_t bit)
+{
+    if(bit > pixtend_v2s_get_num_di()) {
+        return 0xff;
     }
 
-    if(enable) {
-        *enable = (input->v2s.byDigitalIn & (1 << bit)) != 0;
-    }
-
-    return true;
+    return input->v2s.byDigitalIn & (1 << bit);
 }
 
 
@@ -150,5 +152,7 @@ void pixtend_v2s_init(struct pixtend * pxt)
         pxt->get_model = pixtend_v2s_get_model;
         pxt->get_fw_version = pixtend_v2s_get_fw;
         pxt->get_hw_version = pixtend_v2s_get_hw;
+        pxt->get_num_di = pixtend_v2s_get_num_di;
+        pxt->get_di = pixtend_v2s_get_di;
     }
 }
