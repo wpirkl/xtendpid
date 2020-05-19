@@ -178,7 +178,7 @@ static bool cmd_get_di(union xtendpid_cmds * cmd, size_t cmd_len, union xtendpid
 
         size_t rd_index = (buffer_index + 1) & 1;
 
-        uint8_t value = pixt_get_di(&pixt, &rd[rd_index], cmd->get_di.di);
+        uint8_t value = pixt_get_di(&pixt, &rx[rd_index], cmd->get_di.di);
         if(value != 0xff) {
             prepare_answer_get_di(answer, answer_len, cmd->get_di.di, value);
             return true;
@@ -293,7 +293,7 @@ static void * worker_thread(void * user_data)
         for(di = 0; di < di_num; ++di)
         {
             uint8_t new_value;
-            if((new_value = pixt_get_di(&pixt, &rx[new_index])) != pixt_get_di(&pixt, &rx[old_index]))
+            if((new_value = pixt_get_di(&pixt, &rx[new_index], di)) != pixt_get_di(&pixt, &rx[old_index], di))
             {
                 prepare_answer_get_di(&answer, &answer_len, di, new_value);
 

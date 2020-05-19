@@ -83,7 +83,7 @@ struct xtendpid_answer_get_di {
     struct xtendpid_answer_base base;
     uint8_t di;
     uint8_t value;
-}
+};
 
 
 union xtendpid_answer {

@@ -112,7 +112,7 @@ static inline bool pixt_get_hw_version(struct pixtend * pixt, union pixtIn * inp
 static inline size_t pixt_get_num_di(struct pixtend * pixt)
 {
     if(pixt) {
-        return pixt->get_num_di()
+        return pixt->get_num_di();
     }
 
     return 0;
