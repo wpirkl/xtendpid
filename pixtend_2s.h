@@ -118,4 +118,6 @@ struct pixtInV2S {
 
 void pixtend_v2s_init(struct pixtend * pxt);
 
+const struct pixtend * pixtend_v2s_get(void);
+
 // eof
