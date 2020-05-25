@@ -45,6 +45,7 @@ static char sub_model = 'S';
 static uint16_t port = 5555;
 static char address[256] = "*";
 
+static size_t cycle_delay_us = 100000;
 
 static void print_buffer(uint8_t * buffer, size_t len)
 {
@@ -113,7 +114,6 @@ static bool cmd_get_model(union xtendpid_cmds * cmd, size_t cmd_len, union xtend
 
         if(pixt_get_model(pixt, &rx[rd_index], &model, &sub_model))
         {
-            answer->base.return_code = RC_SUCCESS;
             answer->get_model.model = model;
             answer->get_model.sub_model = sub_model;
 
@@ -132,7 +132,6 @@ static bool cmd_get_fw_version(union xtendpid_cmds * cmd, size_t cmd_len, union 
         uint8_t version = 0;
         if(pixt_get_fw_version(pixt, &rx[rd_index], &version))
         {
-            answer->base.return_code = RC_SUCCESS;
             answer->get_fw_version.version = version;
 
             *answer_len = sizeof(answer->get_fw_version);
@@ -151,7 +150,6 @@ static bool cmd_get_hw_version(union xtendpid_cmds * cmd, size_t cmd_len, union 
         uint8_t version = 0;
         if(pixt_get_hw_version(pixt, &rx[rd_index], &version))
         {
-            answer->base.return_code = RC_SUCCESS;
             answer->get_hw_version.version = version;
 
             *answer_len = sizeof(answer->get_hw_version);
@@ -165,7 +163,6 @@ static bool cmd_get_hw_version(union xtendpid_cmds * cmd, size_t cmd_len, union 
 
 static void prepare_answer_get_di(union xtendpid_answer * answer, size_t * answer_len, size_t di, uint8_t value)
 {
-    answer->base.return_code = RC_SUCCESS;
     answer->get_di.di = di;
     answer->get_di.value = value;
     *answer_len = sizeof(answer->get_di);
@@ -188,11 +185,46 @@ static bool cmd_get_di(union xtendpid_cmds * cmd, size_t cmd_len, union xtendpid
 }
 
 
+static bool cmd_set_do(union xtendpid_cmds * cmd, size_t cmd_len, union xtendpid_answer * answer, size_t * answer_len)
+{
+    if(cmd_len == sizeof(struct xtendpid_cmd_set_do)) {
+
+        bool value = pixt_set_do(pixt, &tx, cmd->set_do.pin, cmd->set_do.value != 0);
+        if(value) {
+            *answer_len = sizeof(answer->set_do)
+        }
+
+        return value;
+    }
+
+    return false;
+}
+
+
+static bool cmd_set_ro(union xtendpid_cmds * cmd, size_t cmd_len, union xtendpid_answer * answer, size_t * answer_len)
+{
+    if(cmd_len == sizeof(struct xtendpid_cmd_set_ro)) {
+
+        bool value = pixt_set_ro(pixt, &tx, cmd->set_ro.pin, cmd->set_ro.value != 0);
+        if(value) {
+            *answer_len = sizeof(answer->set_ro)
+        }
+
+        return value;
+    }
+
+    return false;
+}
+
+
+// Table based as I don't want to have everything packed in switch or if/elif/elif/else ...
 static const bool (*command_handlers[])(union xtendpid_cmds *, size_t, union xtendpid_answer *, size_t *) = {
 /* 0 */ cmd_get_model,
 /* 1 */ cmd_get_fw_version,
 /* 2 */ cmd_get_hw_version,
 /* 3 */ cmd_get_di,
+/* 4 */ cmd_set_do,
+/* 5 */ cmd_set_ro,
 };
 
 
@@ -203,13 +235,18 @@ static void parse_cmd(union xtendpid_cmds * cmd, size_t cmd_len, union xtendpid_
 
     answer->base.cmd = cmd->base.cmd;
     answer->base.return_code = RC_UNKNOWN_CMD;
-    *answer_len = 1;
+    *answer_len = sizeof(answer->base);
 
     if(cmd->base.cmd < sizeof(command_handlers) / sizeof(void*))
     {
+        // prevent anybody from accessing tx and rx structures
         pthread_mutex_lock(&mutex);
 
-        if(!command_handlers[cmd->base.cmd](cmd, cmd_len, answer, answer_len))
+        if(command_handlers[cmd->base.cmd](cmd, cmd_len, answer, answer_len))
+        {
+            answer->base.return_code = RC_SUCCESS;
+        }
+        else
         {
             answer->base.return_code = RC_FAIL;
         }
@@ -250,6 +287,7 @@ static void * worker_thread(void * user_data)
 
     for(;running;++cnt)
     {
+        // prevent anybody from accessing tx and rx structures
         pthread_mutex_lock(&mutex);
 
         int index = buffer_index;
@@ -305,7 +343,7 @@ static void * worker_thread(void * user_data)
         // here we could take care of all the other stuff like temperature and humidity
 
         // do it every 100 ms
-        usleep(100000);
+        usleep(cycle_delay_us);
     }
 
     if(running)

@@ -153,4 +153,43 @@ static inline uint8_t pixt_get_di(const struct pixtend * pixt, union pixtIn * in
 }
 
 
+static inline size_t pixt_get_num_do(const struct pixtend * pixt)
+{
+    if(pixt) {
+        return pixt->get_num_do();
+    }
+
+    return 0;
+}
+
+
+static inline bool pixt_set_do(const struct pixtend * pixt, union pixtOut * output, size_t o, bool enable)
+{
+    if(pixt) {
+        return pixt->set_do(output, o, enable);
+    }
+
+    return false;
+}
+
+
+static inline size_t pixt_get_num_ro(const struct pixtend * pixt)
+{
+    if(pixt) {
+        return pixt->get_num_ro();
+    }
+
+    return 0;
+}
+
+
+static inline bool pixt_set_ro(const struct pixtend * pixt, union pixtOut * output, size_t o, bool enable)
+{
+    if(pixt) {
+        return pixt->set_ro(output, o, enable);
+    }
+
+    return false;
+}
+
 // eof

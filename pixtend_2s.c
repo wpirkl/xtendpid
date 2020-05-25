@@ -137,7 +137,7 @@ static bool pixtend_v2s_set_ro(union pixtOut * output, size_t bit, bool enable)
 {
     uint8_t value;
 
-    if(bit > 3) {
+    if(bit > pixtend_v2s_get_num_ro()) {
         return false;
     }
 
@@ -151,7 +151,6 @@ static bool pixtend_v2s_set_ro(union pixtOut * output, size_t bit, bool enable)
     output->v2s.byRelayOut = value;
 
     return true;
-
 }
 
 
@@ -193,3 +192,5 @@ void pixtend_v2s_init(struct pixtend * pxt)
         pxt->set_ro = pixtend_v2s_set_ro;
     }
 }
+
+// eof
