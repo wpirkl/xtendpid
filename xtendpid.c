@@ -191,7 +191,7 @@ static bool cmd_set_do(union xtendpid_cmds * cmd, size_t cmd_len, union xtendpid
 
         bool value = pixt_set_do(pixt, &tx, cmd->set_do.pin, cmd->set_do.value != 0);
         if(value) {
-            *answer_len = sizeof(answer->set_do)
+            *answer_len = sizeof(answer->set_do);
         }
 
         return value;
@@ -207,7 +207,7 @@ static bool cmd_set_ro(union xtendpid_cmds * cmd, size_t cmd_len, union xtendpid
 
         bool value = pixt_set_ro(pixt, &tx, cmd->set_ro.pin, cmd->set_ro.value != 0);
         if(value) {
-            *answer_len = sizeof(answer->set_ro)
+            *answer_len = sizeof(answer->set_ro);
         }
 
         return value;
