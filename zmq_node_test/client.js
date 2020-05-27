@@ -6,10 +6,13 @@ async function run() {
   sock.connect("tcp://127.0.0.1:3001")
   console.log("Producer bound to port 3001")
 
-  await sock.send("4")
+  let sending = [4, 0, 1];
+  console.log("Sending: " + sending);
+
+  await sock.send(Uint8Array.from(sending))
   const [result] = await sock.receive()
 
-  console.log(result)
+  console.log("received: " + Uint8Array.from(result))
 }
 
 run()
