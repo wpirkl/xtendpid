@@ -92,7 +92,7 @@ static size_t pixtend_v2s_get_num_di(void)
 
 static uint8_t pixtend_v2s_get_di(union pixtIn * input, size_t bit)
 {
-    if(bit > pixtend_v2s_get_num_di()) {
+    if(bit >= pixtend_v2s_get_num_di()) {
         return 0xff;
     }
 
@@ -110,7 +110,7 @@ static bool pixtend_v2s_set_do(union pixtOut * output, size_t bit, bool enable)
 {
     uint8_t value;
 
-    if(bit > pixtend_v2s_get_num_do()) {
+    if(bit >= pixtend_v2s_get_num_do()) {
         return false;
     }
 
@@ -137,7 +137,7 @@ static bool pixtend_v2s_set_ro(union pixtOut * output, size_t bit, bool enable)
 {
     uint8_t value;
 
-    if(bit > pixtend_v2s_get_num_ro()) {
+    if(bit >= pixtend_v2s_get_num_ro()) {
         return false;
     }
 

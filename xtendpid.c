@@ -334,6 +334,8 @@ static void * worker_thread(void * user_data)
             if((new_value = pixt_get_di(pixt, &rx[new_index], di)) != pixt_get_di(pixt, &rx[old_index], di))
             {
                 prepare_answer_get_di(&answer, &answer_len, di, new_value);
+                answer.base.cmd = CMD_GET_DI;
+                answer.base.return_code = RC_SUCCESS;
 
                 // ship it without blocking
                 zmq_send(publisher, &answer, answer_len, 0);
