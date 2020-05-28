@@ -55,18 +55,16 @@ else
   PYINSTALLARGS = --root=$(DESTDIR)
 endif
 
-install: $(ALL)
+install: $(PROGRAM)
 	install -m 0755 $(PROGRAM)                      $(DESTDIR)$(bindir)
-	if which python2; then python2 setup.py install $(PYINSTALLARGS); fi
-	if which python3; then python3 setup.py install $(PYINSTALLARGS); fi
+	
 ifeq ($(DESTDIR),)
 	ldconfig
 endif
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/$(PROGRAM)
-	if which python2; then python2 setup.py install $(PYINSTALLARGS) --record /tmp/$(PROGRAM) >/dev/null; sed 's!^!$(DESTDIR)!' < /tmp/pigpio | xargs rm -f >/dev/null; fi
-	if which python3; then python3 setup.py install $(PYINSTALLARGS) --record /tmp/$(PROGRAM) >/dev/null; sed 's!^!$(DESTDIR)!' < /tmp/pigpio | xargs rm -f >/dev/null; fi
+	
 ifeq ($(DESTDIR),)
 	ldconfig
 endif
