@@ -1,0 +1,10 @@
+[Unit]
+Description=xtendpid daemon
+
+[Service]
+Type=forking
+ExecStart=/usr/bin/xtendpid_daemon
+
+[Install]
+WantedBy=multi-user.target
+
