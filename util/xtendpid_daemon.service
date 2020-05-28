@@ -3,7 +3,7 @@ Description=xtendpid daemon
 
 [Service]
 Type=forking
-ExecStart=/usr/bin/xtendpid_daemon
+ExecStart=/usr/local/bin/xtendpid_daemon start
 
 [Install]
 WantedBy=multi-user.target

@@ -37,6 +37,7 @@ bindir = $(exec_prefix)/bin
 includedir = $(prefix)/include
 libdir = $(prefix)/lib
 mandir = $(prefix)/man
+servicedir = /etc/systemd/system
 
 all: $(PROGRAM)
 
@@ -56,17 +57,19 @@ else
 endif
 
 install: $(PROGRAM)
-	install -m 0755 $(PROGRAM)                      $(DESTDIR)$(bindir)
-	
+	install -m 0755 $(PROGRAM)           $(DESTDIR)$(bindir)
+	install -m 0755 util/xtendpid_daemon $(DESTDIR)$(bindir)
+	install util/xtendpid_daemon.service $(DESTDIR)$(servicedir)
 ifeq ($(DESTDIR),)
-	ldconfig
+#	ldconfig
 endif
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/$(PROGRAM)
-	
+	rm -f $(DESTDIR)$(bindir)/xtendpid_daemon
+	rm -f $(DESTDIR)$(servicedir)/xtendpid_daemon.service
 ifeq ($(DESTDIR),)
-	ldconfig
+#	ldconfig
 endif
 
 # generated using gcc -MM *.c
