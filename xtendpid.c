@@ -22,6 +22,9 @@
 #include "xtendpid.h"
 
 
+#undef DEBUG
+
+
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_t pth;
 static volatile bool running = true;
@@ -47,6 +50,7 @@ static char address[256] = "*";
 
 static size_t cycle_delay_us = 100000;
 
+#ifdef DEBUG
 static void print_buffer(uint8_t * buffer, size_t len)
 {
     int ret;
@@ -57,6 +61,7 @@ static void print_buffer(uint8_t * buffer, size_t len)
     }
     puts("");
 }
+#endif
 
 
 static int spi_init(void)
@@ -230,8 +235,10 @@ static const bool (*command_handlers[])(union xtendpid_cmds *, size_t, union xte
 
 static void parse_cmd(union xtendpid_cmds * cmd, size_t cmd_len, union xtendpid_answer * answer, size_t * answer_len)
 {
+#ifdef DEBUG
     printf("received:\n");
-    print_buffer(&cmd->base.cmd, sizeof(union xtendpid_cmds));
+    print_buffer((uint8_t*)cmd, sizeof(union xtendpid_cmds));
+#endif
 
     answer->base.cmd = cmd->base.cmd;
     answer->base.return_code = RC_UNKNOWN_CMD;
@@ -254,8 +261,10 @@ static void parse_cmd(union xtendpid_cmds * cmd, size_t cmd_len, union xtendpid_
         pthread_mutex_unlock(&mutex);
     }
 
+#ifdef DEBUG
     printf("sending:\n");
-    print_buffer(&answer->base.return_code, *answer_len);
+    print_buffer((uint8_t*)answer, *answer_len);
+#endif
 }
 
 
@@ -296,6 +305,11 @@ static void * worker_thread(void * user_data)
 
         pixt_prepare_output(pixt, &tx);
 
+#ifdef DEBUG
+        printf("sending:\n");
+	print_buffer((uint8_t*)&tx, sizeof(tx));
+#endif
+
         // here we can do the transfer
         struct spi_ioc_transfer tr = {
                 .tx_buf = (unsigned long)&tx,
@@ -309,10 +323,15 @@ static void * worker_thread(void * user_data)
         ret = ioctl(fd, SPI_IOC_MESSAGE(1), &tr);
         if(ret > 0)
         {
+#ifdef DEBUG
+            printf("received:\n");
+            print_buffer((uint8_t*)&rx[new_index], sizeof(rx[new_index]));
+#endif
             if(!pixt_parse_input(pixt, &rx[new_index]))
             {
+                printf("crc check failed\n");
                 // do we really want to exit if we got a crc error?
-                ret = -1;
+                ret = 1;
                 // print_buffer(&rx[index]);
             }
             else
@@ -481,7 +500,7 @@ int app_main(int argc, char * argv[])
             }
 
             // and send the return code back
-            len = zmq_send(responder, &answer.base.return_code, answer_len, 0);
+            len = zmq_send(responder, &answer, answer_len, 0);
             if(len < 0)
             {
                 printf("error sending to zmq: %d\n", len);

@@ -24,6 +24,8 @@ case "$1" in
     echo 1 > /sys/class/gpio/gpio23/value
     echo 0 > /sys/class/gpio/gpio23/value
 
+    sleep 1
+
     xtendpid
     ;;
   stop)
@@ -46,6 +48,8 @@ case "$1" in
     echo out > /sys/class/gpio/gpio23/direction
     echo 1 > /sys/class/gpio/gpio23/value
     echo 0 > /sys/class/gpio/gpio23/value
+
+    sleep 1
 
     xtendpid
     ;;

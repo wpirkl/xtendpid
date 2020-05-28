@@ -60,14 +60,20 @@ install: $(PROGRAM)
 	install -m 0755 $(PROGRAM)           $(DESTDIR)$(bindir)
 	install -m 0755 util/xtendpid_daemon $(DESTDIR)$(bindir)
 	install util/xtendpid_daemon.service $(DESTDIR)$(servicedir)
+	systemctl daemon-reload
+	systemctl enable xtendpid_daemon
+	service xtendpid_daemon start
 ifeq ($(DESTDIR),)
 #	ldconfig
 endif
 
 uninstall:
+	systemctl disable xtendpid_daemon
+	service xtendpid_daemon stop
 	rm -f $(DESTDIR)$(bindir)/$(PROGRAM)
 	rm -f $(DESTDIR)$(bindir)/xtendpid_daemon
 	rm -f $(DESTDIR)$(servicedir)/xtendpid_daemon.service
+	systemctl daemon-reload
 ifeq ($(DESTDIR),)
 #	ldconfig
 endif

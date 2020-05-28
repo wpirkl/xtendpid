@@ -11,9 +11,11 @@ static bool pixtend_v2s_prepare_output(union pixtOut * output)
     output->v2s.byModelOut = 'S';
     output->v2s.crcHeaderLow = 0;
     output->v2s.crcHeaderHigh = 0;
+    output->v2s.crcDataLow = 0;
+    output->v2s.crcDataHigh = 0;
 
-    crc_header = crc16(0xffff, &output->v2s.byModelOut, &output->v2s.crcHeaderHigh - &output->v2s.crcHeaderLow + 1);
-    crc_data = crc16(0xffff, &output->v2s.byDigitalInDebounce01, &output->v2s.crcDataHigh - &output->v2s.crcDataHigh + 1);
+    crc_header = crc16(0xffff, &output->v2s.byModelOut, &output->v2s.crcHeaderLow - &output->v2s.byModelOut);
+    crc_data = crc16(0xffff, &output->v2s.byDigitalInDebounce01, &output->v2s.crcDataLow - &output->v2s.byDigitalInDebounce01);
 
 //    printf("crc_header: %04x\n", crc_header);
 //    printf("crc_data: %04x\n", crc_data);
@@ -86,7 +88,7 @@ static bool pixtend_v2s_get_model(union pixtIn * input, char * model, char * sub
 
 static size_t pixtend_v2s_get_num_di(void)
 {
-    return 3;
+    return 8;
 }
 
 
@@ -102,7 +104,7 @@ static uint8_t pixtend_v2s_get_di(union pixtIn * input, size_t bit)
 
 static size_t pixtend_v2s_get_num_do(void)
 {
-    return 3;
+    return 4;
 }
 
 
@@ -115,6 +117,7 @@ static bool pixtend_v2s_set_do(union pixtOut * output, size_t bit, bool enable)
     }
 
     value = output->v2s.byDigitalOut;
+
     if(enable) {
         value |= (uint8_t)(1 << bit);
     } else {
@@ -129,7 +132,7 @@ static bool pixtend_v2s_set_do(union pixtOut * output, size_t bit, bool enable)
 
 static size_t pixtend_v2s_get_num_ro(void)
 {
-    return 3;
+    return 4;
 }
 
 
